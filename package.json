@@ -1,6 +1,6 @@
 {
   "name": "palette",
-  "version": "0.1.5",
+  "version": "0.1.8",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
