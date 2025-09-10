@@ -20,7 +20,7 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
   );
 }
 
-// LegendPanel (모달 내부에 포함될 수 있으므로 함께 둠)
+// LegendPanel
 function LegendPanel({ calendarId, legends, requestConfirm }) {
   const [newLegendName, setNewLegendName] = useState('');
   const [newLegendColor, setNewLegendColor] = useState('#d3d3d3');
@@ -72,13 +72,14 @@ function LegendPanel({ calendarId, legends, requestConfirm }) {
 export function AllModals({ modals, handlers, data }) {
     const { confirmModal, isLegendModalOpen, isEventDetailModalOpen, isLegendPanelModalOpen } = modals;
     const { closeConfirmModal, handleConfirm, setLegendModalOpen, setSelectionRange, handleLegendSelect, setEventDetailModalOpen, handleSaveMemo, handleStartEditEvent, handleUpdateEvent, handleDeleteEvent, setLegendPanelModalOpen, requestConfirm } = handlers;
-    const { legends, selectedEvent, eventMemo, setEventMemo, calendarId } = data;
+    // data 객체에서 isOwner를 받아 권한 제어에 사용합니다.
+    const { legends, selectedEvent, eventMemo, setEventMemo, calendarId, isOwner } = data;
 
     return (
         <>
             <ConfirmModal isOpen={confirmModal.isOpen} onClose={closeConfirmModal} onConfirm={handleConfirm} title={confirmModal.title} message={confirmModal.message} />
 
-            {isLegendModalOpen && (
+            {isOwner && isLegendModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={() => { setLegendModalOpen(false); setSelectionRange({ start: null, end: null }); }}>
                     <div className="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-sm" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-bold mb-4">어떤 일정인가요?</h3>
@@ -104,25 +105,32 @@ export function AllModals({ modals, handlers, data }) {
                             <button onClick={() => setEventDetailModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
                         </div>
                         <p className="text-sm text-gray-500 mb-2 font-semibold">{selectedEvent.startDate} ~ {selectedEvent.endDate}</p>
-                        <textarea value={eventMemo} onChange={(e) => setEventMemo(e.target.value)} className="w-full h-32 p-2 border rounded-md mb-4" placeholder="세부 내용을 입력하세요..."></textarea>
-                        <div className="bg-gray-50 p-3 rounded-md mb-4">
-                            <h4 className="font-semibold text-sm mb-2">일정 수정</h4>
-                            <div className="flex gap-2">
-                                <button onClick={handleStartEditEvent} className="flex-1 bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-md hover:bg-gray-300 text-sm">날짜 변경</button>
-                                <select onChange={(e) => handleUpdateEvent({ legendId: e.target.value })} value={selectedEvent.legendId} className="flex-1 bg-gray-200 text-gray-800 font-semibold px-2 py-2 rounded-md hover:bg-gray-300 text-sm">
-                                    {legends.map(legend => <option key={legend.id} value={legend.id}>{legend.name}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="flex justify-between">
-                            <button onClick={handleDeleteEvent} className="bg-red-500 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-600">일정 삭제</button>
-                            <button onClick={handleSaveMemo} className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-600">메모 저장</button>
-                        </div>
+                        {/* 메모 textarea는 소유자가 아닐 경우 읽기 전용(readOnly)으로 설정합니다. */}
+                        <textarea value={eventMemo} onChange={(e) => setEventMemo(e.target.value)} readOnly={!isOwner} className={`w-full h-32 p-2 border rounded-md mb-4 ${!isOwner ? 'bg-gray-100' : ''}`} placeholder={isOwner ? "세부 내용을 입력하세요..." : "메모 내용"}></textarea>
+                        
+                        {/* 소유자인 경우에만 수정/삭제 버튼들을 보여줍니다. */}
+                        {isOwner && (
+                            <>
+                                <div className="bg-gray-50 p-3 rounded-md mb-4">
+                                    <h4 className="font-semibold text-sm mb-2">일정 수정</h4>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleStartEditEvent} className="flex-1 bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-md hover:bg-gray-300 text-sm">날짜 변경</button>
+                                        <select onChange={(e) => handleUpdateEvent({ legendId: e.target.value })} value={selectedEvent.legendId} className="flex-1 bg-gray-200 text-gray-800 font-semibold px-2 py-2 rounded-md hover:bg-gray-300 text-sm">
+                                            {legends.map(legend => <option key={legend.id} value={legend.id}>{legend.name}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between">
+                                    <button onClick={handleDeleteEvent} className="bg-red-500 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-600">일정 삭제</button>
+                                    <button onClick={handleSaveMemo} className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-600">메모 저장</button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
 
-            {isLegendPanelModalOpen && (
+            {isOwner && isLegendPanelModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={() => setLegendPanelModalOpen(false)}>
                     <div className="bg-gray-50 p-6 rounded-lg shadow-xl w-11/12 max-w-lg" onClick={e => e.stopPropagation()}>
                         <LegendPanel calendarId={calendarId} legends={legends} requestConfirm={requestConfirm} />
